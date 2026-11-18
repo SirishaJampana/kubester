@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kubester — Learn Kubernetes</title>
+  <meta name="description" content="Learn Kubernetes from scratch with a live, animated cluster and a real-feeling kubectl terminal — right in your browser.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23326ce5' d='M32 3 57 15v24L32 61 7 39V15z'/%3E%3Ccircle cx='32' cy='32' r='11' fill='none' stroke='white' stroke-width='4'/%3E%3Cpath stroke='white' stroke-width='4' stroke-linecap='round' d='M32 13v8M32 43v8M13 32h8M43 32h8M19 19l6 6M39 39l6 6M45 19l-6 6M25 39l-6 6'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <button class="icon-btn menu-btn" id="btn-menu" aria-label="Open curriculum" title="Curriculum" aria-expanded="false" aria-controls="sidebar">☰</button>
+      <a class="brand" href="#" id="brand" aria-label="Kubester home">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><path fill="var(--k8s)" d="M32 3 57 15v24L32 61 7 39V15z"/><circle cx="32" cy="32" r="11" fill="none" stroke="#fff" stroke-width="4"/><path stroke="#fff" stroke-width="4" stroke-linecap="round" d="M32 13v8M32 43v8M13 32h8M43 32h8M19 19l6 6M39 39l6 6M45 19l-6 6M25 39l-6 6"/></svg>
+        <span>Kubester</span>
+      </a>
+      <nav class="tabs" role="tablist" aria-label="Sections">
+        <button role="tab" class="tab active" data-view="learn">Learn</button>
+        <button role="tab" class="tab" data-view="handbook"><span class="long">Handbook</span><span class="short">Book</span></button>
+        <button role="tab" class="tab" data-view="flashcards"><span class="long">Flashcards</span><span class="short">Cards</span></button>
+        <button role="tab" class="tab" data-view="cheatsheet"><span class="long">Cheat sheet</span><span class="short">Cheats</span></button>
+      </nav>
+      <div class="topbar-right">
+        <div class="progress-pill" id="progress-pill" title="Your progress">
+          <svg viewBox="0 0 36 36" class="ring"><circle cx="18" cy="18" r="15" class="ring-bg"/><circle cx="18" cy="18" r="15" class="ring-fg" id="ring-fg"/></svg>
+          <span id="progress-text">0%</span>
+        </div>
+        <button class="icon-btn" id="btn-theme" aria-label="Toggle light/dark theme" title="Toggle theme">◐</button>
+      </div>
+    </header>
+
+    <!-- ===================== LEARN VIEW ===================== -->
+    <main class="view view-learn active" id="view-learn">
+      <aside class="sidebar" id="sidebar" aria-label="Curriculum">
+        <div class="sidebar-head">
+          <span>Curriculum</span>
+          <button class="icon-btn small" id="btn-close-menu" aria-label="Close curriculum">✕</button>
+        </div>
+        <div class="sidebar-scroll" id="curriculum"></div>
+      </aside>
+
+      <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+      <section class="lesson-pane" id="lesson-pane" aria-label="Lesson">
+        <button class="icon-btn small max-btn" data-max="lesson" title="Full screen lesson (Esc to exit)" aria-label="Expand lesson to full screen" aria-pressed="false"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/></svg></button>
+        <div class="lesson-scroll" id="lesson"></div>
+        <div class="vsplitter" id="vsplitter" role="separator" aria-orientation="vertical" aria-label="Resize lesson panel" tabindex="0" title="Drag to resize · double-click to reset"></div>
+      </section>
+
+      <section class="workspace" id="workspace" aria-label="Cluster and terminal">
+        <div class="cluster-panel" id="cluster-panel">
+          <div class="panel-toolbar">
+            <span class="panel-title"><span class="live-dot"></span>Cluster <span class="muted" id="cluster-clock"></span></span>
+            <div class="toolbar-right">
+              <select id="ns-filter" aria-label="Namespace filter"></select>
+              <label class="toggle" title="Show kube-system Pods"><input type="checkbox" id="toggle-system"><span>system</span></label>
+              <div class="speed" role="group" aria-label="Simulation speed">
+                <button data-speed="1" class="active" title="Real time">1×</button>
+                <button data-speed="4" title="4× faster">4×</button>
+                <button data-speed="10" title="10× faster">10×</button>
+              </div>
+              <button class="icon-btn small" id="btn-legend" title="Legend">?</button>
+              <button class="icon-btn small max-btn" data-max="workspace" title="Full screen cluster &amp; terminal (Esc to exit)" aria-label="Expand cluster and terminal to full screen" aria-pressed="false"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/></svg></button>
+            </div>
+          </div>
+          <div class="canvas-wrap" id="canvas-wrap">
+            <canvas id="cluster-canvas" aria-label="Animated map of the Kubernetes cluster: control plane, worker nodes, pods, services and traffic"></canvas>
+            <div class="tooltip" id="tooltip" hidden></div>
+            <div class="inspector" id="inspector" hidden></div>
+            <div class="legend" id="legend" hidden></div>
+          </div>
+          <div class="narrator" id="narrator" aria-live="polite"></div>
+        </div>
+        <div class="splitter" id="splitter" role="separator" aria-orientation="horizontal" title="Drag to resize"></div>
+        <div class="terminal-panel" id="terminal-panel">
+          <div class="panel-toolbar term-toolbar">
+            <span class="panel-title">⌨ Terminal <span class="muted" id="term-context">learner@laptop · context kubester · ns default</span></span>
+            <div class="toolbar-right">
+              <span class="running-pill" id="running-pill" hidden>● running — <kbd>Ctrl</kbd>+<kbd>C</kbd> to stop</span>
+              <button class="icon-btn small" id="btn-term-clear" title="Clear (Ctrl+L)">⌫</button>
+            </div>
+          </div>
+          <div class="terminal" id="terminal" tabindex="0"></div>
+        </div>
+      </section>
+
+      <nav class="mobile-switch only-narrow" aria-label="Panels">
+        <button data-pane="lesson" class="active">📘 Lesson</button>
+        <button data-pane="cluster">🗺 Cluster</button>
+        <button data-pane="terminal">⌨ Terminal</button>
+      </nav>
+    </main>
+
+    <!-- ===================== HANDBOOK ===================== -->
+    <main class="view view-handbook" id="view-handbook">
+      <aside class="hb-list">
+        <input type="search" id="hb-search" placeholder="Search 110 topics…" aria-label="Search the handbook">
+        <div class="hb-items" id="hb-items"></div>
+      </aside>
+      <article class="hb-article" id="hb-article"></article>
+    </main>
+
+    <!-- ===================== FLASHCARDS ===================== -->
+    <main class="view view-flashcards" id="view-flashcards">
+      <div class="fc-wrap" id="fc-wrap"></div>
+    </main>
+
+    <!-- ===================== CHEAT SHEET ===================== -->
+    <main class="view view-cheatsheet" id="view-cheatsheet">
+      <div class="cs-wrap" id="cs-wrap"></div>
+    </main>
+  </div>
+
+  <!-- editor modal (nano / kubectl edit) -->
+  <div class="modal" id="editor-modal" hidden>
+    <div class="modal-card editor-card" role="dialog" aria-modal="true" aria-labelledby="editor-title">
+      <div class="editor-head">
+        <span id="editor-title">nano</span>
+        <span class="muted">Ctrl+S save &amp; close · Esc cancel</span>
+      </div>
+      <div class="editor-error" id="editor-error" hidden></div>
+      <div class="editor-body">
+        <pre class="editor-gutter" id="editor-gutter" aria-hidden="true"></pre>
+        <textarea id="editor-text" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off"></textarea>
+      </div>
+      <div class="editor-foot">
+        <button class="btn" id="editor-cancel">Cancel</button>
+        <button class="btn primary" id="editor-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-stack" id="toasts" aria-live="polite"></div>
+  <canvas id="confetti" aria-hidden="true"></canvas>
+
+  <script src="js/vendor/js-yaml.min.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/runtime.js"></script>
+  <script src="js/cluster.js"></script>
+  <script src="js/controllers.js"></script>
+  <script src="js/kubelet.js"></script>
+  <script src="js/describe.js"></script>
+  <script src="js/explain.js"></script>
+  <script src="js/kubectl.js"></script>
+  <script src="js/helm.js"></script>
+  <script src="js/lesson-files.js"></script>
+  <script src="js/shell.js"></script>
+  <script src="js/guide-data.js"></script>
+  <script src="js/lessons.js"></script>
+  <script src="js/markdown.js"></script>
+  <script src="js/terminal.js"></script>
+  <script src="js/canvas.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
