@@ -8,7 +8,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23326ce5' d='M32 3 57 15v24L32 61 7 39V15z'/%3E%3Ccircle cx='32' cy='32' r='11' fill='none' stroke='white' stroke-width='4'/%3E%3Cpath stroke='white' stroke-width='4' stroke-linecap='round' d='M32 13v8M32 43v8M13 32h8M43 32h8M19 19l6 6M39 39l6 6M45 19l-6 6M25 39l-6 6'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -59,11 +59,7 @@
             <div class="toolbar-right">
               <select id="ns-filter" aria-label="Namespace filter"></select>
               <label class="toggle" title="Show kube-system Pods"><input type="checkbox" id="toggle-system"><span>system</span></label>
-              <div class="speed" role="group" aria-label="Simulation speed">
-                <button data-speed="1" class="active" title="Real time">1×</button>
-                <button data-speed="4" title="4× faster">4×</button>
-                <button data-speed="10" title="10× faster">10×</button>
-              </div>
+              <div class="flow-speed" id="flow-speed" role="group" aria-label="Animation speed"></div>
               <button class="icon-btn small" id="btn-legend" title="Legend">?</button>
               <button class="icon-btn small max-btn" data-max="workspace" title="Full screen cluster &amp; terminal (Esc to exit)" aria-label="Expand cluster and terminal to full screen" aria-pressed="false"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/></svg></button>
             </div>
@@ -74,12 +70,13 @@
             <div class="inspector" id="inspector" hidden></div>
             <div class="legend" id="legend" hidden></div>
           </div>
+          <div class="flowbar" id="flowbar" aria-live="polite"></div>
           <div class="narrator" id="narrator" aria-live="polite"></div>
         </div>
         <div class="splitter" id="splitter" role="separator" aria-orientation="horizontal" title="Drag to resize"></div>
         <div class="terminal-panel" id="terminal-panel">
           <div class="panel-toolbar term-toolbar">
-            <span class="panel-title">⌨ Terminal <span class="muted" id="term-context">learner@laptop · context kubester · ns default</span></span>
+            <span class="panel-title"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>Terminal <span class="muted" id="term-context">learner@laptop · context kubester · ns default</span></span>
             <div class="toolbar-right">
               <span class="running-pill" id="running-pill" hidden>● running — <kbd>Ctrl</kbd>+<kbd>C</kbd> to stop</span>
               <button class="icon-btn small" id="btn-term-clear" title="Clear (Ctrl+L)">⌫</button>
@@ -153,6 +150,7 @@
   <script src="js/guide-data.js"></script>
   <script src="js/lessons.js"></script>
   <script src="js/markdown.js"></script>
+  <script src="js/story.js"></script>
   <script src="js/terminal.js"></script>
   <script src="js/canvas.js"></script>
   <script src="js/app.js"></script>

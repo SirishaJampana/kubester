@@ -265,13 +265,6 @@
           else { nrt.diskPressure = args[3] !== 'off'; io.out(`💽 ${nodeName}: DiskPressure ${nrt.diskPressure ? 'ON' : 'OFF'}\n`); c.dirty = true; }
           return 0;
         }
-        case 'speed': {
-          const x = parseFloat(args[1]);
-          if (!(x >= 0.25 && x <= 20)) { io.err('usage: sim speed <0.25-20>\n'); return 1; }
-          this.hooks.setSpeed && this.hooks.setSpeed(x);
-          io.out(`⏱️  Cluster clock runs at ${x}× real time.\n`);
-          return 0;
-        }
         case 'reset': {
           if (this.hooks.resetCluster) { this.hooks.resetCluster(); io.out('♻️  Cluster reset to a fresh state.\n'); return 0; }
           io.err('sim: reset is not available here\n');
@@ -295,7 +288,7 @@
       const pick = list => [...new Set(list)].filter(x => x.startsWith(cur)).sort();
       if (prev.length === 0) return pick(Object.keys(this.env.tools).concat(['ls', 'cat', 'cd', 'echo', 'curl', 'mkdir', 'rm', 'grep', 'base64', 'touch', 'pwd', 'cp', 'mv']));
       if (!isK) {
-        if (prev[0] === 'sim') return prev.length === 1 ? pick(['help', 'fast-forward', 'load', 'node', 'speed', 'reset', 'status']) : prev[1] === 'node' && prev.length === 2 ? pick(['down', 'up', 'disk-pressure']) : prev[1] === 'node' ? pick(this.c.list('Node').map(n => n.metadata.name)) : prev[1] === 'load' ? pick(this.c.list('Deployment', this.kubectl.ns).map(d => d.metadata.name)) : [];
+        if (prev[0] === 'sim') return prev.length === 1 ? pick(['help', 'fast-forward', 'load', 'node', 'reset', 'status']) : prev[1] === 'node' && prev.length === 2 ? pick(['down', 'up', 'disk-pressure']) : prev[1] === 'node' ? pick(this.c.list('Node').map(n => n.metadata.name)) : prev[1] === 'load' ? pick(this.c.list('Deployment', this.kubectl.ns).map(d => d.metadata.name)) : [];
         if (prev[0] === 'helm' && prev.length === 1) return pick(['install', 'upgrade', 'rollback', 'uninstall', 'list', 'history', 'status', 'repo', 'search', 'template', 'show', 'get', 'create']);
         return this.completeFile(cur);
       }
@@ -360,7 +353,6 @@
   sim node down <node>           crash a node's kubelet (watch it go NotReady)
   sim node up <node>             bring it back
   sim node disk-pressure <node> on|off
-  sim speed <x>                  run the cluster clock faster (0.25–20×)
   sim reset                      throw everything away and start a fresh cluster
   sim status                     show the cluster clock
 `;

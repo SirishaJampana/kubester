@@ -35,7 +35,6 @@ Files to play with live in \`~/manifests\` — try \`ls manifests\`.` };
 
   // ------------------------------------------------------------------ runtime state
   let cluster = null;
-  let speed = 1;
   let current = null;            // current lesson object
   let doneSteps = new Set();
   let shell, term, viz, ctx;
@@ -43,7 +42,7 @@ Files to play with live in \`~/manifests\` — try \`ls manifests\`.` };
 
   function newCluster() {
     const c = new KS.Cluster({ seed: Math.floor(Math.random() * 1e9), startTime: Date.now() });
-    c.on('narrate', narrate);
+    c.on('narrate', n => (viz ? viz.narrate(n, narrate) : narrate(n)));
     return c;
   }
 
@@ -146,7 +145,7 @@ Files to play with live in \`~/manifests\` — try \`ls manifests\`.` };
     const now = performance.now();
     const real = Math.min(500, now - lastTick);
     lastTick = now;
-    let sim = real * speed;
+    let sim = real;
     try {
       while (sim > 0) { const d = Math.min(sim, 250); cluster.tick(d); sim -= d; }
     } catch (e) { console.error(e); }
@@ -154,7 +153,7 @@ Files to play with live in \`~/manifests\` — try \`ls manifests\`.` };
   }
   function updateClock() {
     const d = new Date(cluster.now);
-    $('#cluster-clock').textContent = `· ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}${speed !== 1 ? ` · ${speed}×` : ''}`;
+    $('#cluster-clock').textContent = `· ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
     $('#term-context').textContent = `learner@laptop · context kubernetes-admin@kubester · ns ${cluster.context.namespace}`;
   }
   let nsSig = '';
@@ -266,13 +265,14 @@ Files to play with live in \`~/manifests\` — try \`ls manifests\`.` };
     const idx = LESSONS.indexOf(l);
     let h = '';
     if (l.id === 'welcome') {
-      h += `<div class="hero"><h2>Learn Kubernetes by doing.</h2><p>A live, animated cluster and a real-feeling terminal — no install. Every command you type changes the map on the right.</p><div class="hero-stats"><div><b>${LESSONS.length}</b>lessons</div><div><b>${totalSteps}</b>hands-on steps</div><div><b>10</b>incident labs</div><div><b>110</b>handbook topics</div></div></div>`;
+      h += `<div class="hero"><div class="hero-kicker">Kubester · interactive course</div><h2>Learn Kubernetes<br>by <span class="mark">doing.</span></h2><p>A live cluster and a real terminal, right in your browser. Type a command and watch the cluster map react, step by step.</p><div class="hero-term" aria-label="Course stats"><div class="ht-bar"><i></i><i></i><i></i><span>learner@kubester</span></div><div class="ht-body"><div class="ht-cmd"><span class="ht-p">$</span> <span class="ht-type">kubectl learn kubernetes --by=doing</span></div><div class="ht-out"><span><b>${LESSONS.length}</b> lessons</span><span><b>${totalSteps}</b> hands-on steps</span><span><b>10</b> incident labs</span><span><b>110</b> handbook topics</span></div><div class="ht-ok">✓ cluster ready, scroll down to start</div></div></div></div>`;
     }
     h += `<div class="lesson-kicker">${esc(mod.icon)} ${esc(mod.title)}${l.minutes ? ` <span class="muted">· ~${l.minutes} min</span>` : ''}${idx >= 0 ? ` <span class="muted">· ${idx + 1}/${LESSONS.length}</span>` : ''}</div>`;
     h += `<h1 class="lesson-title">${esc(l.title)}</h1>`;
     if ((l.refs || []).length) h += `<div class="chips">${l.refs.map(q => `<button class="chip" data-q="${q}" title="${esc((KS.GUIDE.questions[q - 1] || {}).title || '')}">📖 Q${q} ${esc(((KS.GUIDE.questions[q - 1] || {}).title || '').split(/[-–(]/)[0].trim().slice(0, 34))}</button>`).join('')}</div>`;
     if (l.ticket) h += `<div class="ticket"><b>🚨 Incident ticket</b>${esc(l.ticket)}</div>`;
-    h += `<details class="concept" ${doneSteps.size && l.steps.length ? '' : 'open'}><summary>${l.incident ? '🧭 Playbook' : '💡 Concept'}</summary><div class="md">${md(l.intro)}</div></details>`;
+    const stAt = storyAt[l.id] != null ? storyAt[l.id] : (doneSteps.size && l.steps.length ? 1e9 : 0);
+    h += KS.story.render(l, { at: stAt, all: store.get('storyAll', false) });
     if (l.steps.length) {
       h += `<div class="steps-head"><h3>${l.incident ? 'Investigate & fix' : 'Hands-on'}</h3><span class="muted" id="steps-count">${doneSteps.size}/${l.steps.length} done</span></div>`;
       for (const s of l.steps) {
@@ -302,8 +302,26 @@ Files to play with live in \`~/manifests\` — try \`ls manifests\`.` };
     updateCurrentStep();
     if (doneSteps.size === l.steps.length && l.steps.length) renderDoneBanner();
   }
+  const storyAt = {};
+  function onStoryClick(btn) {
+    const el = btn.closest('.cstory'), act = btn.dataset.cs, at = +el.dataset.at, n = +el.dataset.n;
+    const startHandsOn = () => {
+      const next = current.steps.find(x => !doneSteps.has(x.index)) || current.steps[0];
+      const st = next && document.querySelector(`.step[data-i="${next.index}"]`);
+      if (!st) return;
+      st.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      st.classList.remove('flash'); void st.offsetWidth; st.classList.add('flash');
+    };
+    if (act === 'mode') { store.set('storyAll', !store.get('storyAll', false)); const keep = el.parentElement.scrollTop; el.outerHTML = KS.story.render(current, { at, all: store.get('storyAll', false) }); return keep; }
+    if (act === 'start' || (act === 'next' && at === n - 1)) { startHandsOn(); return; }
+    const to = act === 'next' ? at + 1 : act === 'prev' ? at - 1 : +btn.dataset.to;
+    storyAt[current.id] = KS.story.go(el, to);
+    if (el.getBoundingClientRect().top < 60) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
   function onLessonClick(e) {
     const t = e.target;
+    const csb = t.closest('[data-cs]');
+    if (csb) { onStoryClick(csb); return; }
     const q = t.closest('[data-q]');
     if (q && !t.closest('.inspector')) { openHandbook(+q.dataset.q); return; }
     const go = t.closest('[data-go]');
@@ -543,24 +561,24 @@ Files to play with live in \`~/manifests\` — try \`ls manifests\`.` };
       afterCommand: (line, code) => { ctx.record('line', line, code); },
       onKubectl: (args, code) => ctx.record('kubectl', (args[0] === 'helm' || args[0] === 'sim' ? '' : 'kubectl ') + args.join(' '), code),
       hint: () => { const s = current && current.steps.find(x => !doneSteps.has(x.index)); return s ? `Step ${s.index + 1}: ${s.hint || 'try: ' + KS.lessonFill(s.cmd, cluster, cluster.context.namespace)}` : null; },
-      setSpeed: x => setSpeed(x),
       resetCluster: () => setTimeout(() => startLesson(current ? current.id : 'sandbox'), 10),
     };
     term = new KS.Terminal($('#terminal'), {
       shell,
-      getSpeed: () => speed,
       fastForward,
       openEditor,
       onBusy: b => { $('#running-pill').hidden = !b; },
-      onCommandDone: () => { setTimeout(evaluateSteps, 60); lastEval = performance.now(); },
+      onCommandStart: line => viz && viz.beginCommand(line),
+      onCommandDone: line => { setTimeout(evaluateSteps, 60); lastEval = performance.now(); if (viz) setTimeout(() => viz.endCommand(line), 30); },
     });
     viz = new KS.ClusterViz($('#cluster-canvas'), $('#canvas-wrap'), {
-      tooltip: $('#tooltip'), inspector: $('#inspector'),
+      tooltip: $('#tooltip'), inspector: $('#inspector'), flowbar: $('#flowbar'), speedCtl: $('#flow-speed'),
       getFilter: () => ({ ns: $('#ns-filter').value || '*', showSystem: $('#toggle-system').checked }),
       onCommand: cmd => { term.paste(cmd); if (window.innerWidth <= 1080) setPane('terminal'); },
       onHandbook: q => openHandbook(q),
     });
     viz.attach(cluster);
+    KS.viz = viz; // handy for debugging from the console
     // events
     $('#lesson').addEventListener('click', onLessonClick);
     $('#curriculum').addEventListener('click', e => { const b = e.target.closest('[data-lesson]'); if (b) { startLesson(b.dataset.lesson); showView('learn'); } });
@@ -580,9 +598,8 @@ Files to play with live in \`~/manifests\` — try \`ls manifests\`.` };
     $('#btn-legend').addEventListener('click', () => {
       const lg = $('#legend');
       lg.hidden = !lg.hidden;
-      lg.innerHTML = `<i style="background:var(--good)"></i>Running &amp; ready<i style="background:var(--warn)"></i>Pending / starting / not ready<i style="background:var(--bad)"></i>Crashing / failing<i style="background:var(--muted)"></i>Completed / terminating<i style="background:linear-gradient(90deg,#f66,#6af,#6f6)"></i>Left stripe = owner (same color = same Deployment)<i style="background:var(--accent)"></i>Line Service → ready Pod (dashed = not ready)`;
+      lg.innerHTML = `<i style="background:var(--good)"></i>Running &amp; ready<i style="background:var(--warn)"></i>Pending / starting / not ready<i style="background:var(--bad)"></i>Crashing / failing<i style="background:var(--muted)"></i>Completed / terminating<i style="background:linear-gradient(90deg,#f66,#6af,#6f6)"></i>Left stripe = owner (same color = same Deployment)<i style="background:var(--accent)"></i>Line Service → ready Pod (dashed = not ready)<i style="background:var(--accent)"></i>Arrow = one component talking to another (label = what it sends)<i style="background:var(--panel-3)"></i>Faded = not involved in the current step`;
     });
-    document.querySelectorAll('.speed button').forEach(b => b.addEventListener('click', () => setSpeed(+b.dataset.speed)));
     $('#ns-filter').addEventListener('change', () => {});
     document.querySelectorAll('.mobile-switch button').forEach(b => b.addEventListener('click', () => setPane(b.dataset.pane)));
     $('#hb-search').addEventListener('input', e => renderHbList(e.target.value));
@@ -619,11 +636,6 @@ Files to play with live in \`~/manifests\` — try \`ls manifests\`.` };
     startLesson(/^#lesson\//.test(h) ? h.slice(8) : saved, { reuse: true });
     route();
     setTimeout(() => term.focus(), 200);
-  }
-  function setSpeed(x) {
-    speed = x;
-    document.querySelectorAll('.speed button').forEach(b => b.classList.toggle('active', +b.dataset.speed === x));
-    updateClock();
   }
   function route() {
     const h = location.hash;

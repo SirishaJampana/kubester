@@ -267,6 +267,7 @@
       if (!line.trim()) { this.renderPrompt(); this.scroll(); return; }
       this.busy = true;
       this.watchEl = null;
+      this.opts.onCommandStart && this.opts.onCommandStart(line);
       this.renderPrompt();
       const io = { out: s => this.write(s, 'out'), err: s => this.write(s, 'err') };
       const gen = this.shell.run(line, io, stdin);
@@ -304,9 +305,8 @@
     }
     sleep(ms) {
       return new Promise(resolve => {
-        const speed = this.opts.getSpeed();
         this.opts.onBusy && this.opts.onBusy(true);
-        const t = setTimeout(() => { this.cancelFn = null; resolve('ok'); }, Math.min(ms / speed, 120000));
+        const t = setTimeout(() => { this.cancelFn = null; resolve('ok'); }, Math.min(ms, 120000));
         this.cancelFn = () => { clearTimeout(t); this.write('^C\n', 'out'); resolve('cancel'); };
       });
     }
@@ -324,7 +324,7 @@
         };
         const iv = setInterval(() => {
           const now = performance.now();
-          const dt = Math.min(1000, now - last) * this.opts.getSpeed();
+          const dt = Math.min(1000, now - last);
           last = now;
           let res;
           try { res = task.tick(dt); } catch (e) { this.write(`error: ${e.message}\n`, 'err'); res = { code: 1 }; }
